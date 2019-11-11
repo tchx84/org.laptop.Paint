@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=Paint
+GenericName=Paint
+TryExec=sugarapp
+Exec=sugarapp
+Icon=org.laptop.Paint
+Type=Application
+Comment=Paint
+Terminal=false
+StartupNotify=true
+Categories=Education;
+MimeType=image/png;
