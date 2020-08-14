@@ -1,0 +1,23 @@
+diff --git a/Area.py b/Area.py
+index aa514bf..9c0a363 100644
+--- a/Area.py
++++ b/Area.py
+@@ -1354,7 +1354,7 @@ class Area(Gtk.DrawingArea):
+             surface = self.drawing_canvas
+ 
+         # create a surface and paste the image rotated
+-        logging.error('create rotate surface')
++        logging.debug('create rotate surface')
+         mirror_surface = surface.create_similar(cairo.CONTENT_COLOR_ALPHA,
+                                                 width, height)
+         mirror_ctx = cairo.Context(mirror_surface)
+@@ -1475,7 +1475,7 @@ class Area(Gtk.DrawingArea):
+             surface = self.drawing_canvas
+ 
+         # create a surface and paste the image rotated
+-        logging.error('create rotate surface')
++        logging.debug('create rotate surface')
+         rotate_surface = surface.create_similar(cairo.CONTENT_COLOR_ALPHA,
+                                                 height, width)
+         rotate_ctx = cairo.Context(rotate_surface)
+

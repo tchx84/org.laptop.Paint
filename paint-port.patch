@@ -1,5 +1,5 @@
 diff --git a/OficinaActivity.py b/OficinaActivity.py
-index a8f28db..8c7cf1f 100644
+index f12b2a3..da463e6 100644
 --- a/OficinaActivity.py
 +++ b/OficinaActivity.py
 @@ -72,15 +72,16 @@ from gi.repository import Gdk
@@ -30,7 +30,7 @@ index a8f28db..8c7cf1f 100644
          self.max_participants = 1
  
          logging.debug('Starting Paint activity (Oficina)')
-@@ -175,69 +176,12 @@ class OficinaActivity(activity.Activity):
+@@ -174,68 +175,15 @@ class OficinaActivity(activity.Activity):
              self.area.change_line_size(1)
  
      def read_file(self, file_path):
@@ -41,9 +41,8 @@ index a8f28db..8c7cf1f 100644
 -
 +        self.area.setup(self._width, self._height - style.GRID_CELL_SIZE)
          self.area.load_from_file(file_path)
- 
+-
 -        def size_allocate_cb(widget, allocation):
--            logging.error('read file size allocate')
 -            self.fixed.disconnect(self._setup_handle)
 -            width = self.area.drawing_canvas_data.get_width()
 -            height = self.area.drawing_canvas_data.get_height()
@@ -80,9 +79,9 @@ index a8f28db..8c7cf1f 100644
 -                self.metadata['title'] = title
 -            logging.error('title: %s', self.metadata['title'])
 -
--        if 'images' in self.metadata:
--            self._journal_images = json.loads(self.metadata['images'])
--
+         if 'images' in self.metadata:
+             self._journal_images = json.loads(self.metadata['images'])
+ 
      def write_file(self, file_path):
 -        '''Save file on Sugar Journal. '''
 -
@@ -97,13 +96,87 @@ index a8f28db..8c7cf1f 100644
          self.area.drawing_canvas.write_to_png(file_path)
 -        self.metadata['mime_type'] = 'image/png'
 -        self.metadata['state'] = json.dumps(self.area.tool)
--        self.metadata['images'] = json.dumps(dialogs.get_journal_images())
+         self.metadata['images'] = json.dumps(dialogs.get_journal_images())
 -        logging.debug('Wrote metadata[\'state\']: %s', self.metadata['state'])
  
      def _get_area_displacement(self):
          """Return the point to use as top left corner in order to move
+diff --git a/dialogs.py b/dialogs.py
+index 4d5cce5..0bd3208 100644
+--- a/dialogs.py
++++ b/dialogs.py
+@@ -16,7 +16,9 @@
+ from gettext import gettext as _
+ import os
+ import glob
++import shutil
+ 
++from gi.repository import GLib
+ from gi.repository import GObject
+ from gi.repository import Gtk
+ from gi.repository import Gdk
+@@ -32,6 +34,8 @@ try:
+ except:
+     FILTER_TYPE_GENERIC_MIME = 'generic_mime'
+ 
++from sugarapp.widgets import DesktopOpenChooser
++
+ STORE = None
+ JOURNAL_IMAGES = []
+ 
+@@ -159,36 +163,28 @@ class TuxStampDialog(_DialogWindow):
+         filepath = STORE.get(iter_, 1)[0]
+         if filepath == 'loadfromjournal':
+             self.hide()
+-            try:
+-                chooser = ObjectChooser(self._activity, what_filter='Image',
+-                                        filter_type=FILTER_TYPE_GENERIC_MIME,
+-                                        show_preview=True)
+-            except:
+-                # for compatibility with older versions
+-                chooser = ObjectChooser(self._activity, what_filter='Image')
++            chooser = DesktopOpenChooser(self._activity)
+ 
+             try:
+-                result = chooser.run()
+-                newfilepath = None
+-                if result == Gtk.ResponseType.ACCEPT:
+-                    jobject = chooser.get_selected_object()
+-                    if jobject and jobject.file_path:
+-                        newfilepath = jobject.file_path
+-                        object_id = str(jobject.object_id)
+-                        if object_id not in JOURNAL_IMAGES:
+-                            JOURNAL_IMAGES.append(object_id)
+-                            pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size(
+-                                newfilepath,
+-                                50,
+-                                50)
+-                            STORE.append([pixbuf, newfilepath])
++                filename = chooser.get_filename()
++                newfilepath = GLib.build_filenamev([
++                    GLib.get_user_data_dir(),
++                    os.path.basename(filename)])
++                shutil.copyfile(filename, newfilepath)
++
++                if newfilepath not in JOURNAL_IMAGES:
++                    JOURNAL_IMAGES.append(newfilepath)
++                    pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size(
++                        newfilepath,
++                        50,
++                        50)
++                    STORE.append([pixbuf, newfilepath])
+             finally:
+                 if not newfilepath:
+                     self.show_all()
+                 else:
+                     self.emit('stamp-selected', newfilepath)
+                     self.destroy()
+-                chooser.destroy()
+                 del chooser
+         else:
+             self.emit('stamp-selected', filepath)
 diff --git a/toolbox.py b/toolbox.py
-index 24275b4..d501e39 100644
+index 2710d0e..1e8b0a2 100644
 --- a/toolbox.py
 +++ b/toolbox.py
 @@ -73,11 +73,6 @@ from sugar3.graphics.toolcombobox import ToolComboBox
@@ -136,7 +209,7 @@ index 24275b4..d501e39 100644
  
  def add_menu(icon_name, tooltip, tool_name, button, activate_cb):
      menu_item = PaletteMenuItem(icon_name=icon_name, text_label=tooltip)
-@@ -129,7 +126,7 @@ class DrawToolbarBox(ToolbarBox):
+@@ -130,7 +127,7 @@ class DrawToolbarBox(ToolbarBox):
  
          self._activity = activity
          ToolbarBox.__init__(self)
@@ -145,7 +218,7 @@ index 24275b4..d501e39 100644
          self.toolbar.insert(activity_button, -1)
  
          self._activity.set_toolbar_box(self)
-@@ -851,26 +848,11 @@ class ImageToolbar(Gtk.Toolbar):
+@@ -853,26 +850,11 @@ class ImageToolbar(Gtk.Toolbar):
          self._activity.area.mirror(widget, horizontal=False)
  
      def insertImage(self, widget, activity):
@@ -177,3 +250,4 @@ index 24275b4..d501e39 100644
  
      # Make the colors be in grayscale
      def grayscale(self, widget):
+

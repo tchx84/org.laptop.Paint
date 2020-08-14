@@ -1,0 +1,13 @@
+diff --git a/Area.py b/Area.py
+index 4f64930..aa514bf 100644
+--- a/Area.py
++++ b/Area.py
+@@ -1303,7 +1303,7 @@ class Area(Gtk.DrawingArea):
+             ctx.set_source_surface(self.drawing_canvas)
+             ctx.paint()
+ 
+-            pixels.fromstring(image_surface)
++            pixels.frombytes(image_surface.get_data())
+ 
+             # process the pixels in the array
+             new_array = array.array(pixels.typecode, len(pixels) * [0])
